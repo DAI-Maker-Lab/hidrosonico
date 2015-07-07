@@ -47,8 +47,8 @@ XBee
 const int HEIGHT = 491;		//	Height of top of octagonal gasket, in cm
 
 //	http://data.sparkfun.com/hidrosonico_corquin
-#define SPARKFUN_PUBLIC_KEY "YGVgRzy7QKcyvOZ6OxE8"
-#define SPARKFUN_PRIVATE_KEY "RbvzKgGA9JUkVXlyXdxK"
+#define SPARKFUN_PUBLIC_KEY "INSERT_YOUR_KEY_HERE"
+#define SPARKFUN_PRIVATE_KEY "INSERT_YOUR_KEY_HERE"
 #define MOBILE_GATEWAY "17043237775"
 #define TWITTER_GATEWAY "40404"
 
@@ -63,7 +63,7 @@ const int yellowLevel = 200;                //      Yellow alert level
 
 /* This is the alert level at which we start sending more regular messages.*/
 
-const char* pulseTo = "@celaque_hidro";     //      pulse.to group name
+const char* pulseTo = "@pulse_to_group_name";     //      pulse.to group name
 
 /* We use pulse.to so that we can send SMS messages to changing lists of 
 stakeholders without having to change any parameters in the firmware. It is by
@@ -72,10 +72,10 @@ let us know! */
 
 //      Insert your SMTP server settings below
 
-#define SMTPServer "AT+SMTPSRV=\"mail.hover.com\",587"
-#define SMTPAuthorization "AT+SMTPAUTH=1,\"hidrosonico_celaque@daimakerlab.io\",\"4sonarReadings\""
-#define SMTPFromLine "AT+SMTPFROM=\"hidrosonico_celaque@daimakerlab.io\",\"Hidrosonico Corquin v0.2\""
-#define SMTPRecipient "AT+SMTPRCPT=0,0,\"hidrosonico_celaque@dai.com\",\"Grupo Hidrosonico Beta\""
+#define SMTPServer "AT+SMTPSRV=\"your.server.here\",587"
+#define SMTPAuthorization "AT+SMTPAUTH=1,\"your_address@domain.com\",\"YOURPASSWORDHERE\""
+#define SMTPFromLine "AT+SMTPFROM=\"your_address@domain.com\",\"Your Name Here\""
+#define SMTPRecipient "AT+SMTPRCPT=0,0,\"recipient.address@domain.com\",\"Recipient Name\""
 
 //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - //
 
