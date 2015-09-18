@@ -1,3 +1,48 @@
+#define VERSION "0.4-150918.1105"
+
+//- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - //
+//	These variables must be customized for each unit.
+
+#define UNIT_NAME "HidrosonicoXXXX"          //    Individual name of unit
+
+/* We use the last four digits of the unit's phone number for the unit name, 
+in order to more easily keep track of which unit is which.*/
+
+const int HEIGHT = 0;		//	Height of top of octagonal gasket, in cm
+
+//	http://data.sparkfun.com/hidrosonico4631
+#define SPARKFUN_PUBLIC_KEY "enter_public_key_here"
+#define SPARKFUN_PRIVATE_KEY "enter_private_key_here"
+
+#define TWITTER_GATEWAY "40404"       //      Twitter SMS gateway 
+
+#define UTCoffset -6                  //      Local time offset from UTC. 
+
+/* If your locality implements daylight savings time, this is considerably more
+complicated and you'll need changes in the code to accommodate it (provided you
+are concerned with local time for things like a midnight reset of rain totals --
+if not, you may not care much).*/
+
+const int yellowLevel = 100;                //      Yellow alert level
+
+/* This is the alert level at which we start sending more regular messages.*/
+
+/* We use pulse.to so that we can send SMS messages to changing lists of 
+stakeholders without having to change any parameters in the firmware. We'd
+love to hear about alternatives!*/
+
+#define MOBILE_GATEWAY "17043237775"         //      pulse.to gateway
+const char* pulseTo = "@new_pulsegroup";     //      pulse.to group name
+
+//      Insert your SMTP server settings below
+
+#define SMTPServer "AT+SMTPSRV=\"mail.server.com\",587"
+#define SMTPAuthorization "AT+SMTPAUTH=1,\"hidrosonico@domain.com\",\"password\""
+#define SMTPFromLine "AT+SMTPFROM=\"hidrosonico@domain.com\",\"Hidrosonico XXXX\""
+#define SMTPRecipient "AT+SMTPRCPT=0,0,\"mailgroup@domain.com\",\"Grupo Hidrosonico\""
+
+//- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - //
+
 /*	Hidrosónico is a stream gauge using a MaxSonar HRXL MB7369 sonar 
 rangefinder, a Seeeduino Stalker v3 Arduino-compatible microcontroller platform, 
 and an Adafruit FONA 800 GSM module. It reads the distance between the sensor 
@@ -10,12 +55,12 @@ countries. This version integrates a rain gauge at the request of the recipient.
 The code provided sends data to data.sparkfun.com as the cloud service but it 
 could be easily adapted to another provider. 
 
-Please note the section at the beginning of the code that callse for user- and 
+Please note the section at the beginning of the code that calls for user- and 
 unit-specific input.
 
-This is very much a beta unit and we are actively making changes as a result of 
-the data and experiences we are collecting from the two existing pilot installations 
-in Honduras (at Chinda, Santa Barbara and Corquín, Copan).
+This is a beta unit and we are actively making changes as a result of 
+the data and experiences we are collecting from existing pilot installations 
+in Honduras.
 
 This code uses snippets of the Adafruit example code for its FONA library 
 (https://github.com/adafruit/Adafruit_FONA_Library) and snippets from the 
@@ -30,58 +75,7 @@ the Creative Commons-Attribution (CC BY) license.
 If you use it, please let us know (robert_ryan-silva[at]dai.com), and if you 
 improve it, please share! */
 
-
-/*
-TO DO:
-
-Copyright notice
-Compare to Github
-
-Pull pin low to shut off sonar -- requires new PCB
-XBee
-*/
-
-//- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - //
-//	These variables must be customized for each unit.
-
-const int HEIGHT = 491;		//	Height of top of octagonal gasket, in cm
-
-//	http://data.sparkfun.com/hidrosonico_corquin
-#define SPARKFUN_PUBLIC_KEY "INSERT_YOUR_KEY_HERE"
-#define SPARKFUN_PRIVATE_KEY "INSERT_YOUR_KEY_HERE"
-#define MOBILE_GATEWAY "17043237775"
-#define TWITTER_GATEWAY "40404"
-
-const byte UTCoffset = -4;                  //      Local time offset from UTC. 
-
-/* If your locality implements daylight savings time, this is considerably more
-complicated and you'll need changes in the code to accommodate it (provided you
-are concerned with local time for things like a midnight reset of rain totals --
-if not, you may not care much).*/
-
-const int yellowLevel = 200;                //      Yellow alert level
-
-/* This is the alert level at which we start sending more regular messages.*/
-
-const char* pulseTo = "@pulse_to_group_name";     //      pulse.to group name
-
-/* We use pulse.to so that we can send SMS messages to changing lists of 
-stakeholders without having to change any parameters in the firmware. It is by
-no means a perfect solution, so if you come up with something better, please
-let us know! */
-
-//      Insert your SMTP server settings below
-
-#define SMTPServer "AT+SMTPSRV=\"your.server.here\",587"
-#define SMTPAuthorization "AT+SMTPAUTH=1,\"your_address@domain.com\",\"YOURPASSWORDHERE\""
-#define SMTPFromLine "AT+SMTPFROM=\"your_address@domain.com\",\"Your Name Here\""
-#define SMTPRecipient "AT+SMTPRCPT=0,0,\"recipient.address@domain.com\",\"Recipient Name\""
-
-//- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - //
-
 //	Include programming libraries into the sketch
-//#include <MemoryFree.h>         //  For tracking SRAM usage
-
 #include <Adafruit_FONA.h>      //  For Adafruit FONA module
 #include <SoftwareSerial.h>	//  For serial communication with FONA
 #include <Wire.h>		//  I2C library for communication with RTC
@@ -93,14 +87,17 @@ let us know! */
 #define rainInt 1		//  Interrupt number associated with rainPin
 #define rtcPin 2		//  Interrupt pin from RTC
 #define rainPin 3   	        //  Set rain gauge pin
-//#define rangePin 6              //  Sonar ranging start/stop pin - future implementation
-#define pwPin 7		        //  Pulse width data pin from sonar
 
-#define FONA_RST 8 	        //  FONA reset pin
-#define FONA_PS 9	        //  Power status pin
-#define FONA_KEY 10	        //  On/off pin
-#define FONA_TX 12	        //  Receive from FONA
-#define FONA_RX 13	        //  Send to FONA
+#define pwPin 7  		//  Pulse width data pin from sonar
+#define rangePin 8              //  Sonar ranging start/stop pin
+
+#define beePin 5                //  Pin to turn XBee on/off
+
+#define FONA_RST 4 	        //  FONA reset pin
+#define FONA_PS 6	        //  Power status pin
+#define FONA_KEY 9	        //  On/off pin
+#define FONA_TX 11	        //  Receive from FONA
+#define FONA_RX 12	        //  Send to FONA
 
 //	Define variables that the sketch will use
 int streamHeight = 0;
@@ -151,8 +148,8 @@ static void rainIRQ()
 	if (raininterval > 10)  		//  Ignore switch-bounce glitches less
 		                                //	than 10mS after initial edge
 	{
-		dailyRain += 2.79;      //  Each dump is 2.794mm of rain
-		hourlyRain += 2.79;  	//  Increase this hour's amount of rain
+		dailyRain += .2794;      //  Each dump is .2794mm of rain
+		hourlyRain += .2794;  	//  Increase this hour's amount of rain
 		rainlast = raintime; 	//  Set up for next event
 		Serial.println(F("Rain event."));  //  For debugging
 	}
@@ -169,7 +166,7 @@ static void rtcIRQ()
 
 void setup()
 {
-	Serial.begin(115200);		//  Begin the Serial interface
+	Serial.begin(57600);		//  Begin the Serial interface -- using XBee baud rate
 
 	Serial.println(F("Setup begins."));
 
@@ -177,17 +174,24 @@ void setup()
 	Wire.begin();			//  Begin the I2C interface
 	RTC.begin();			//  Begin the RTC
 
-	Serial.println(F("Hidrosonico online."));
+	Serial.print(F("Hidrosonico online. Version "));
+        Serial.println(VERSION);
 
 	pinMode(pwPin, INPUT);	        //  Sonar pulse width pin
-//        pinMode(rangePin, OUTPUT);      //  Sonar range start/stop pin - future implementation
+        pinMode(rangePin, OUTPUT);      //  Sonar range start/stop pin
+        pinMode(beePin, OUTPUT);        //  Pin controlling power to XBee
 	pinMode(FONA_KEY, OUTPUT);      //  The Key pin from the FONA
 	pinMode(FONA_PS, INPUT);        //  The Power Status pin from the FONA
 	pinMode(rainPin, INPUT_PULLUP); //  The signal pin from the rain gauge
 
-//        digitalWrite(rangePin, LOW);    //  Turn ranging off - future implementation
+        /*  We experimented with turning ranging off between readings, but it was unclear
+        that it was saving much power and it seemed to be interfering with some of the readings.
+        It may be worth testing in a future version, but for now we'll just leave it on.*/
 
-	delay(1000);		        //  I expect I put this here for a reason - don't remember it
+//        digitalWrite(rangePin, LOW);    //  Turn ranging off
+        digitalWrite(rangePin, HIGH);    //  Turn ranging on
+        
+	delay(1000);		        
 
 	//	Try up to five times to boot the FONA module.
 
@@ -203,6 +207,7 @@ void setup()
 		else
 		{
 			booted = true;
+                        Serial.println(F("FONA booted successfully."));
 		}
 	}
 	
@@ -211,14 +216,12 @@ void setup()
                 Serial.println(F("FONA boot failed. Check connections."));
         }
 
-	fona.sendCheckReply(F("ATZ"), F("OK"));			//  Revert to last saved settings
-
-        fona.enableGPRS(true);
+//	fona.sendCheckReply(F("ATZ"), F("OK"));		//  Revert to last saved settings
 
 	clockSet();	//  Set the RTC
 	stopFona();	//  Turn off the FONA to save power
 
-	DateTime now = RTC.now(); 			//  Get the current date/time
+	DateTime now = RTC.now(); 		 //  Get the current date/time from RTC
 	Serial.print(F("The current RTC time is "));
 	Serial.print(now.hour(), DEC);
 	Serial.print(F(":"));
@@ -230,9 +233,6 @@ void setup()
 	attachInterrupt(rainInt, rainIRQ, FALLING);
 	attachInterrupt(rtcInt, rtcIRQ, FALLING);
 	interrupts();					//  Activate interrupts
-
-//        Serial.print(F("Free SRAM: "));
-//        Serial.println(freeMemory());
 
 	Serial.println(F("Setup complete."));
 }
@@ -255,17 +255,27 @@ void loop()
 	{       
                 boolean dataSent = false;               //  Put the flag down
   
-		currentHour = (byte)now.hour();		//  Cast the time and date values
-		currentMinute = (byte)now.minute();	//  as integers so we can manipulate
-		currentDay = (byte)now.date();		//  them more easily later.
-		currentMonth = (byte)now.month();
-		currentYear = (int)now.year();
+		currentHour = now.hour();      
+		currentMinute = now.minute();  
+		currentDay = now.date();       
+		currentMonth = now.month();
+		currentYear = now.year();
 
 		action++;
 
+                //  We'll turn the XBee on only from 9-6 to save power
+                if (currentHour > 9 && currentHour < 14)
+                {
+                        digitalWrite (beePin, LOW);
+                }
+                else
+                {
+                        digitalWrite (beePin, HIGH);
+                }
+
 		bootFona();     //  Start the Fona
 
-                /* One of the original field test units, in Corquín, Honduras, often returned spurious 
+                /* One of the original field test units, in Corquín, Honduras, sometimes returned spurious 
                 negative streamHeights. The non-negative results seemed to be accurate. While we think this was
                 a hardware problem, we'll go ahead and retry the reading up to 3 times if the result is a
                 negative streamHeight to try to reduce any recurrence. */
@@ -294,9 +304,6 @@ void loop()
                         yellow = false;
                 }
 
-                //Serial.print(F("Free SRAM: "));
-                //Serial.println(freeMemory());
-
 		//	We will attempt to upload data to the cloud. If the attempt fails,
 		//	we will restart the Fona and try again for up to three attempts.
 
@@ -323,11 +330,11 @@ void loop()
 			}
 		}
 
-		if(mailCall() == true)		        //	If it's time to send messages...
+		/*if(mailCall() == true)		        //	If it's time to send messages...
 		{
 			sendMail();			//	...send them.
                         sendSMS();
-		}
+		}*/
 
 		if(currentMinute == 0)	        //	At the top of the hour, after upload...
 		{
@@ -345,9 +352,6 @@ void loop()
 		stopFona();		        //	Shut down the FONA to save power
                 
                 lastYellow = yellow;
-                
-                //Serial.print(F("Free SRAM: "));
-                //Serial.println(freeMemory());
         }
 
 	RTC.clearINTStatus();			//	Clear the last loop's RTC interrupt
@@ -356,8 +360,8 @@ void loop()
 	Serial.flush();				//	Let Serial catch up before sleep
 	sleep.sleepInterrupt(0, FALLING);	//	Sleep
 
-	/* When the RTC interrupt triggers, the sketch will resume the loop here and so restart 
-        back at the beginning of the loop. */
+	/* When the RTC interrupt triggers, the sketch will resume the loop here and so go 
+        back to the beginning of the loop. */
 }
 
 
@@ -467,10 +471,7 @@ boolean cloudUpload()
         
 	fona.getBattVoltage(&vbat);	//  Read the battery voltage
 
-        int rawDumps = (dailyRain / 2.79);    //  Providing results to this many decimals would be deceptive
-
-        //Serial.print(F("Free SRAM: "));
-        //Serial.println(freeMemory());
+        int rawDumps = (dailyRain / .2794);    
 
         /* We'll tell FONA to get ready for an HTTP GET command. We could use fona.HTTP_GET_START and build a url 
         with sprintf, but this uses a lot less SRAM.*/
@@ -485,13 +486,17 @@ boolean cloudUpload()
         fona.print(SPARKFUN_PUBLIC_KEY);
         fona.print(F("?private_key="));
         fona.print(SPARKFUN_PRIVATE_KEY);
-        fona.print(F("&accion="));
+        fona.print(F("&1_numero="));
         fona.print(action);
-        fona.print(F("&altura="));
+        fona.print(F("&2_altura="));
         fona.print(streamHeight);
-        fona.print(F("&bateria="));
+        fona.print(F("&3_lluvia_diaria="));
+        fona.print(dailyRain, 1);
+        fona.print(F("&4_lluvia_hora="));
+        fona.print(hourlyRain, 1);
+        fona.print(F("&5_bateria="));
         fona.print(vbat);
-        fona.print(F("&hora="));
+        fona.print(F("&6_hora_sistema="));
         fona.print(currentHour);
         fona.print(F(":"));
         
@@ -501,15 +506,11 @@ boolean cloudUpload()
         }
         
         fona.print(currentMinute);
-        fona.print(F("&lluvia_diaria="));
-        fona.print(dailyRain, 1);
-        fona.print(F("&lluvia_hora="));
-        fona.print(hourlyRain, 1);
-        fona.print(F("&method="));
+        fona.print(F("&7_clock_method="));
         fona.print(method);
-        fona.print(F("&raw_dumps="));
+        fona.print(F("&8_raw_dumps="));
         fona.print(rawDumps);
-        fona.print(F("&upload_failures="));
+        fona.print(F("&9_upload_failures="));
         fona.print(failedUploads);
         fona.println(F("\""));
 
@@ -520,13 +521,17 @@ boolean cloudUpload()
         Serial.print(SPARKFUN_PUBLIC_KEY);
         Serial.print(F("?private_key="));
         Serial.print(SPARKFUN_PRIVATE_KEY);
-        Serial.print(F("&accion="));
+        Serial.print(F("&1_numero="));
         Serial.print(action);
-        Serial.print(F("&altura="));
+        Serial.print(F("&2_altura="));
         Serial.print(streamHeight);
-        Serial.print(F("&bateria="));
+        Serial.print(F("&3_lluvia_diaria="));
+        Serial.print(dailyRain, 1);
+        Serial.print(F("&4_lluvia_hora="));
+        Serial.print(hourlyRain, 1);
+        Serial.print(F("&5_bateria="));
         Serial.print(vbat);
-        Serial.print(F("&hora="));
+        Serial.print(F("&6_hora_sistema="));
         Serial.print(currentHour);
         Serial.print(F(":"));
         
@@ -536,18 +541,13 @@ boolean cloudUpload()
         }
         
         Serial.print(currentMinute);
-        Serial.print(F("&lluvia_diaria="));
-        Serial.print(dailyRain, 1);
-        Serial.print(F("&lluvia_hora="));
-        Serial.print(hourlyRain, 1);
-        Serial.print(F("&method="));
+        Serial.print(F("&7_clock_method="));
         Serial.print(method);
-        Serial.print(F("&raw_dumps="));
+        Serial.print(F("&8_raw_dumps="));
         Serial.print(rawDumps);
-        Serial.print(F("&upload_failures="));
+        Serial.print(F("&9_upload_failures="));
         Serial.print(failedUploads);
         Serial.println(F("\""));
-
         
 	flushFona();
 	fona.sendCheckReply(F("AT+HTTPACTION=0"), F("OK"));
@@ -578,11 +578,12 @@ void takeReading()
 
 	Serial.print(F("Taking readings..."));
 
-        //digitalWrite(rangePin, HIGH);    //    Start ranging - future implementation
-        //delay(5000);        
-
-        /* The Maxbotix only needs 20us to start ranging, but does some filtering based on 
-        adjacent readings, so we'll let it run for five seconds before we start querying it. */
+//        digitalWrite(rangePin, HIGH);    //    Start ranging - future implementation
+//
+//        /* The Maxbotix only needs 20us to start ranging, but does some filtering based on 
+//        adjacent readings, so we'll let it run for five seconds before we start querying it. */
+//
+//        delay(5000);        
  
 	//	Fill the array with readings
 	for(int readingCount = 0; readingCount < arraysize; readingCount++)
@@ -607,6 +608,7 @@ void takeReading()
 	}
 
 //        digitalWrite(rangePin, LOW);          //    Turn sonar off - future implementation
+        digitalWrite(rangePin, HIGH);          //    We'll leave ranging on
         
 	//	Take mode of readings to smooth out any errors or noise
 	pulseMode = mode(rangevalue, arraysize);
@@ -631,7 +633,7 @@ void takeReading()
 
 
 
-int mode(int * x, int n)
+int mode(int * x, int n)    //  Calculate the mode of an array of readings
 {
 	int i = 0;
 	int count = 0;
@@ -677,7 +679,7 @@ boolean sendMail()
 {
 	char emailSubject[59];
         char* yellowAlert;
-        int dailyRainmm = (round(dailyRain));	//    Remove irrelevant decimal places
+        int dailyRainmm = (round(dailyRain), 0);	//    Remove irrelevant decimal places
 
         if(yellow == true)
         {
@@ -727,7 +729,7 @@ boolean sendMail()
 
 boolean sendSMS()
 {
-        int dailyRainmm = (round(dailyRain));	//    Remove irrelevant decimal places
+        int dailyRainmm = (round(dailyRain), 0);	//    Remove irrelevant decimal places
 
         if(smsStart(MOBILE_GATEWAY) == false)
         {
@@ -761,7 +763,7 @@ boolean sendSMS()
                 smsEnd();
         }
                 
-        /* Let's try Twitter. The Tigo network in Honduras (and many others) enable tweeting by
+        /* Let's try Twitter. Many networks, including Tigo in Honduras enable tweeting by
         texting to 40404.*/
         
         delay(10000);
@@ -868,23 +870,51 @@ boolean clockSet()
 	byte netHour;
 	byte netMinute;
 	byte netSecond;
+        byte netOffset;
 
         char theDate[17];
 
-        char replyBuffer[45];        //    A reply buffer for the GSMLOC function
-        uint16_t returncode;         //    Return code for GSMLOC function
-
         fona.enableRTC(1);            //    Enable reading of time from cell network
+        Serial.println(F("Attempting to get local timestamp...."));
+        
+        delay(15000);                   //    Give it (a lot of) time to catch up
 
-        fona.println(F("AT+CCLK?"));  //    Query FONA's clock for network time              
-        netYear = fona.parseInt();    //    Capture the results - network year is 2-digit
+        Serial.println(F("AT+CCLK?"));
+        fona.println(F("AT+CCLK?"));    //    Query FONA's clock for network time              
+        netYear = fona.parseInt();      //    Capture the results - network year is 2-digit
         netMonth = fona.parseInt();   
 	netDay = fona.parseInt();
 	netHour = fona.parseInt();
 	netMinute = fona.parseInt();
-	netSecond = fona.parseInt();	//	Our seconds may lag slightly
+	netSecond = fona.parseInt();	//    Our seconds may lag slightly
+        netOffset = fona.parseInt();    //    This tells us the time zone the clock is using
+
+        //  If necessary, adjust UTC to local time
+        if((netOffset / 4) != UTCoffset)
+        {
+                netHour = (netHour - (netOffset / 4));                
+
+                //  Adjust UTC to local time
+                if((netHour + UTCoffset) < 0)
+                {
+                        netHour = (24 + netHour + UTCoffset);
+                        netDay = (netDay - 1);
+                }
+                else
+                {
+                        if((netHour + UTCoffset) > 23)
+                        {
+                                netHour = (netHour + UTCoffset - 24);
+                                netDay = (netDay + 1);
+                        }
+                        else
+                        {
+                                netHour = (netHour + UTCoffset);
+                        }
+                }
+        }
         
-        sprintf(theDate, "%d/%d/%d %d:%d", netMonth, netDay, netYear, netHour, netMinute);
+        sprintf(theDate, "%d/%d/%d %d:%d", netYear, netMonth, netDay, netHour, netMinute);
         Serial.print(F("Network timestamp: "));
 	Serial.println(theDate);
 
@@ -898,38 +928,81 @@ boolean clockSet()
 
         if(netYear < 15 || netYear > 50)      
         {
+                Serial.println(F("Network timestamp failed."));
+                Serial.println(F("Attempting to get time from GSM location service..."));
                 flushFona();
                 fona.println(F("AT+CIPGSMLOC=2,1"));    //	Query GSMLOC for time     
-                delay(3000);                            //      Let the network catch up         
+                delay(15000);                           //      Let the network catch up         
                 int throwAway = fona.parseInt();        //      We don't need these ints
-                throwAway = fona.parseInt();
-                throwAway = fona.parseInt();
+                //throwAway = fona.parseInt();
+                //throwAway = fona.parseInt();
                 netYear = fona.parseInt();		//	Get the results -- GSMLOC year is 4-digit
 	        netMonth = fona.parseInt();
 	        netDay = fona.parseInt();
-	        byte netUTCHour = fona.parseInt();      //      GSMLOC is supposed to get UTC
+	        netHour = fona.parseInt();              //      GSMLOC is supposed to get UTC
 	        netMinute = fona.parseInt();
 	        netSecond = fona.parseInt();	        //	Our seconds may lag slightly
+                
+                //  Adjust UTC to local time
+                if((netHour + UTCoffset) < 0)
+                {
+                        netHour = (24 + netHour + UTCoffset);
+                        netDay = (netDay - 1);
+                }
+                else
+                {
+                        if((netHour + UTCoffset) > 23)
+                        {
+                                netHour = (netHour + UTCoffset - 24);
+                                netDay = (netDay + 1);
+                        }
+                        else
+                        {
+                                netHour = (netHour + UTCoffset);
+                        }
+                }
                
-                netHour = UTCadjust(netUTCHour);
-               
-	        sprintf(theDate, "%d/%d/%d %d:%d:%d", netMonth, netDay, netYear, netHour, netMinute, netSecond);
+	        sprintf(theDate, "%d/%d/%d %d:%d", netYear, netMonth, netDay, netHour, netMinute);
 	        Serial.print(F("GSMLOC time: "));
                 Serial.println(theDate);
   
-                if(netYear < 2015 || netYear > 2050)        //    If it still doesn't work...
+                if(netYear < 2015 || netYear > 2050 || netHour > 23)   //    If it still doesn't work...
                        {
-                             fona.enableNTPTimeSync(true, F("pool.ntp.org"));  //    Get time from NTP pool
+                             Serial.println(F("GSM location service failed."));
+                             fona.enableNTPTimeSync(true, F("0.daimakerlab.pool.ntp.org"));  //    Get time from NTP pool
+                             Serial.println(F("Attempting to enable NTP sync."));
+                             
+                             delay(15000);                      //      Give it (a lot of) time to catch up
                              
                              fona.println(F("AT+CCLK?"));	//	Query FONA's clock for NTP time              
                              netYear = fona.parseInt();		//	Capture the results
                              netMonth = fona.parseInt();
                              netDay = fona.parseInt();
-                             netHour = fona.parseInt();
+                             netHour = fona.parseInt();         //      We asked NTP for UTC
                              netMinute = fona.parseInt();
                              netSecond = fona.parseInt();	//	Our seconds may lag slightly
         
-                             sprintf(theDate, "%d/%d/%d %d:%d", netMonth, netDay, netYear, netHour, netMinute);
+                
+                              //  Adjust UTC to local time
+                              if((netHour + UTCoffset) < 0)
+                              {
+                                      netHour = (24 + netHour + UTCoffset);
+                                      netDay = (netDay - 1);
+                              }
+                              else
+                              {
+                                      if((netHour + UTCoffset) > 23)
+                                      {
+                                              netHour = (netHour + UTCoffset - 24);
+                                              netDay = (netDay + 1);
+                                      }
+                                      else
+                                      {
+                                              netHour = (netHour + UTCoffset);
+                                      }
+                              }
+        
+                             sprintf(theDate, "%d/%d/%d %d:%d", netYear, netMonth, netDay, netHour, netMinute);
                              Serial.print(F("NTP time: "));
                              Serial.println(theDate);
                              
@@ -955,27 +1028,6 @@ boolean clockSet()
 
 	delay(500);							//	Give FONA time to catch up
         return true;
-}
-
-
-
-byte UTCadjust(byte netUTCHour)
-{
-        /* In Honduras, getting local time from UTC is easy -- there's no Daylight Savings Time. In other
-        locations, this may be a lot harder.*/
-        
-        byte adjustedHour;
-        
-        if(netUTCHour + UTCoffset < 0)
-        {
-                adjustedHour = (netUTCHour + UTCoffset + 24);
-        }
-        else
-        {
-                adjustedHour = (netUTCHour + UTCoffset);
-        }
-        
-        return adjustedHour;
 }
 
 
